@@ -21,6 +21,7 @@ eggs/
 .idea
 lib/
 lib64/
+old-eggs
 parts/
 sdist/
 var/
