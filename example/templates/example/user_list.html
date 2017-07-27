@@ -1,17 +1,56 @@
 {% extends 'example/_base.html' %}
 
-{% block content %}{% endblock content %}
+{% block content %}
+    <a href="{% url 'example:log_out' %}">Log out</a>
+    <br>
+    <ul>
+        {% for user in users %}
+            <!-- NOTE: We escape HTML to prevent XSS attacks. -->
+            <li data-username="{{ user.username|escape }}" id="{{ user.username|escape }}">
+                {{ user.username|escape }}: {{ user.status|default:'Offline' }}
+            </li>
+        {% endfor %}
+    </ul>
+    <ul>
+        <li id="binding"></li>
+
+    </ul>
+{% endblock content %}
 
 {% block script %}
-  <script>
-    var socket = new WebSocket('ws://' + window.location.host + '/users/');
+    <script>
+        var socket = new WebSocket('ws://' + window.location.host + '/users/');
 
-    socket.onopen = function open() {
-      console.log('WebSockets connection created.');
-    };
+        socket.onopen = function open() {
+            console.log('WebSockets connection created.');
+        };
 
-    if (socket.readyState == WebSocket.OPEN) {
-      socket.onopen();
-    }
-  </script>
+        socket.onmessage = function message(event) {
+            var data = JSON.parse(event.data);
+            // NOTE: We escape JavaScript to prevent XSS attacks.
+            var username = encodeURI(data['username']);
+            var user = $("#" + username);
+
+            if (data['is_logged_in']) {
+                user.html(username + ': Online');
+            }
+            else {
+                user.html(username + ': Offline');
+            }
+        };
+
+        var socket_binding = new WebSocket('ws://' + window.location.host + '/binding/');
+
+        socket_binding.onopen = function () {
+            console.log('Binding WebSockets connection created.');
+        };
+
+        socket_binding.onmessage = function (message) {
+            var data = JSON.parse(message.data);
+            // NOTE: We escape JavaScript to prevent XSS attacks.
+            var binding = $("#binding");
+            binding.html(message.data)
+        };
+
+    </script>
 {% endblock script %}
